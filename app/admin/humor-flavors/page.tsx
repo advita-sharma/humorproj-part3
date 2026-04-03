@@ -1,14 +1,27 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { FlavorSearch } from "./FlavorSearch";
+import { Suspense } from "react";
 
-export default async function HumorFlavorsPage() {
+export default async function HumorFlavorsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
   const admin = createAdminClient();
 
-  const { data: flavors, count } = await admin
+  let query = admin
     .from("humor_flavors")
     .select("id, slug, description, created_datetime_utc", { count: "exact" })
     .order("id", { ascending: true });
+
+  if (q) {
+    query = query.or(`slug.ilike.%${q}%,description.ilike.%${q}%`);
+  }
+
+  const { data: flavors, count } = await query;
 
   return (
     <div className="space-y-6">
@@ -18,16 +31,21 @@ export default async function HumorFlavorsPage() {
             Humor Flavors
           </h1>
           <p className="text-[var(--muted)] text-sm mt-1">
-            {count?.toLocaleString() ?? 0} flavors configured
+            {count?.toLocaleString() ?? 0} flavor{count !== 1 ? "s" : ""}{q ? ` matching "${q}"` : " configured"}
           </p>
         </div>
-        <Link
-          href="/admin/humor-flavors/new"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity"
-        >
-          <Plus size={16} />
-          New Flavor
-        </Link>
+        <div className="flex items-center gap-3">
+          <Suspense>
+            <FlavorSearch defaultValue={q ?? ""} />
+          </Suspense>
+          <Link
+            href="/admin/humor-flavors/new"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity"
+          >
+            <Plus size={16} />
+            New Flavor
+          </Link>
+        </div>
       </div>
 
       <div className="rounded-xl border border-[var(--card-border)] overflow-hidden">
@@ -91,13 +109,15 @@ export default async function HumorFlavorsPage() {
         </table>
         {(flavors ?? []).length === 0 && (
           <p className="text-[var(--muted)] text-sm text-center py-12">
-            No humor flavors yet.{" "}
-            <Link
-              href="/admin/humor-flavors/new"
-              className="text-[var(--accent)] underline"
-            >
-              Create one
-            </Link>
+            {q ? `No flavors matching "${q}".` : "No humor flavors yet."}{" "}
+            {!q && (
+              <Link
+                href="/admin/humor-flavors/new"
+                className="text-[var(--accent)] underline"
+              >
+                Create one
+              </Link>
+            )}
           </p>
         )}
       </div>

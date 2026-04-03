@@ -57,7 +57,7 @@ export function TestRunner({ images, flavorId, flavorSlug }: TestRunnerProps) {
             Authorization: `Bearer ${session.access_token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ imageId: selectedImage.id }),
+          body: JSON.stringify({ imageId: selectedImage.id, humorFlavorId: flavorId }),
         }
       );
 
