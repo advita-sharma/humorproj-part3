@@ -71,6 +71,64 @@ export async function updateHumorFlavor(id: number, formData: FormData) {
   redirect(`/admin/humor-flavors/${id}`);
 }
 
+export async function duplicateHumorFlavor(id: number, newSlug: string) {
+  const user = await getAuthenticatedUser();
+  const admin = createAdminClient();
+
+  const trimmedSlug = newSlug.trim();
+  if (!trimmedSlug) throw new Error("New slug is required");
+
+  const [{ data: flavor }, { data: steps }] = await Promise.all([
+    admin.from("humor_flavors").select("*").eq("id", id).single(),
+    admin
+      .from("humor_flavor_steps")
+      .select("*")
+      .eq("humor_flavor_id", id)
+      .order("order_by", { ascending: true }),
+  ]);
+
+  if (!flavor) throw new Error("Flavor not found");
+
+  const { data: newFlavor, error: flavorError } = await admin
+    .from("humor_flavors")
+    .insert({
+      slug: trimmedSlug,
+      description: flavor.description,
+      created_by_user_id: user.id,
+      modified_by_user_id: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (flavorError) throw new Error(flavorError.message);
+
+  if (steps && steps.length > 0) {
+    const stepPayloads = steps.map((step) => ({
+      humor_flavor_id: newFlavor.id,
+      order_by: step.order_by,
+      llm_model_id: step.llm_model_id,
+      llm_input_type_id: step.llm_input_type_id,
+      llm_output_type_id: step.llm_output_type_id,
+      humor_flavor_step_type_id: step.humor_flavor_step_type_id,
+      llm_temperature: step.llm_temperature,
+      llm_system_prompt: step.llm_system_prompt,
+      llm_user_prompt: step.llm_user_prompt,
+      description: step.description,
+      created_by_user_id: user.id,
+      modified_by_user_id: user.id,
+    }));
+
+    const { error: stepsError } = await admin
+      .from("humor_flavor_steps")
+      .insert(stepPayloads);
+
+    if (stepsError) throw new Error(stepsError.message);
+  }
+
+  revalidatePath("/admin/humor-flavors");
+  redirect(`/admin/humor-flavors/${newFlavor.id}`);
+}
+
 export async function deleteHumorFlavor(id: number) {
   await getAuthenticatedUser();
   const admin = createAdminClient();

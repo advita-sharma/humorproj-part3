@@ -2,8 +2,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus, Pencil, ChevronUp, ChevronDown, FlaskConical, MessageSquare } from "lucide-react";
-import { deleteHumorFlavor, deleteHumorFlavorStep, moveStepDown, moveStepUp } from "@/app/actions/humor-flavors";
+import { deleteHumorFlavor, deleteHumorFlavorStep, duplicateHumorFlavor, moveStepDown, moveStepUp } from "@/app/actions/humor-flavors";
 import { DeleteButton } from "@/app/admin/components/DeleteButton";
+import { DuplicateButton } from "@/app/admin/components/DuplicateButton";
 
 export default async function HumorFlavorDetailPage({
   params,
@@ -32,6 +33,7 @@ export default async function HumorFlavorDetailPage({
 
   const flavorId = Number(id);
   const deleteFlavorAction = deleteHumorFlavor.bind(null, flavorId);
+  const duplicateFlavorAction = duplicateHumorFlavor.bind(null, flavorId);
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -70,6 +72,7 @@ export default async function HumorFlavorDetailPage({
             <Pencil size={13} />
             Edit
           </Link>
+          <DuplicateButton action={duplicateFlavorAction} defaultSlug={flavor.slug} />
           <DeleteButton
             action={deleteFlavorAction}
             confirmMessage={`Delete flavor "${flavor.slug}"? This cannot be undone.`}
