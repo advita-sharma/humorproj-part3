@@ -17,6 +17,7 @@ export function FlavorSearch({ defaultValue }: { defaultValue: string }) {
       } else {
         params.delete("q");
       }
+      params.delete("page");
       router.replace(`${pathname}?${params.toString()}`);
     },
     [router, pathname, searchParams]

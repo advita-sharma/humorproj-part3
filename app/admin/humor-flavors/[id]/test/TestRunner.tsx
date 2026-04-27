@@ -62,8 +62,14 @@ export function TestRunner({ images, flavorId, flavorSlug }: TestRunnerProps) {
       );
 
       if (!res.ok) {
-        const text = await res.text();
-        setError(`API error (${res.status}): ${text}`);
+        let message = `Request failed with status ${res.status}.`;
+        try {
+          const body = await res.json();
+          if (typeof body?.message === "string") message = body.message;
+        } catch {
+          // non-JSON body — keep default message
+        }
+        setError(message);
         return;
       }
 
@@ -141,9 +147,13 @@ export function TestRunner({ images, flavorId, flavorSlug }: TestRunnerProps) {
             <p className="text-[var(--foreground)] text-sm font-mono text-xs truncate">
               {selectedImage.id}
             </p>
-            {selectedImage.image_description && (
+            {selectedImage.image_description ? (
               <p className="text-[var(--muted)] text-xs mt-1 line-clamp-3">
                 {selectedImage.image_description}
+              </p>
+            ) : (
+              <p className="text-amber-500 text-xs mt-1">
+                This image has no description — captions cannot be generated without one.
               </p>
             )}
           </div>
@@ -154,7 +164,7 @@ export function TestRunner({ images, flavorId, flavorSlug }: TestRunnerProps) {
       <button
         type="button"
         onClick={handleGenerate}
-        disabled={!selectedImage || loading}
+        disabled={!selectedImage || !selectedImage.image_description || loading}
         className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
       >
         {loading ? (

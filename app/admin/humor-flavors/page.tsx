@@ -2,26 +2,32 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { FlavorSearch } from "./FlavorSearch";
+import { FlavorPagination } from "./FlavorPagination";
 import { Suspense } from "react";
+
+const PAGE_SIZE = 20;
 
 export default async function HumorFlavorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, page: pageParam } = await searchParams;
+  const currentPage = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
   const admin = createAdminClient();
 
   let query = admin
     .from("humor_flavors")
     .select("id, slug, description, created_datetime_utc", { count: "exact" })
-    .order("id", { ascending: true });
+    .order("id", { ascending: true })
+    .range((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE - 1);
 
   if (q) {
     query = query.or(`slug.ilike.%${q}%,description.ilike.%${q}%`);
   }
 
   const { data: flavors, count } = await query;
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   return (
     <div className="space-y-6">
@@ -121,6 +127,10 @@ export default async function HumorFlavorsPage({
           </p>
         )}
       </div>
+
+      <Suspense>
+        <FlavorPagination currentPage={currentPage} totalPages={totalPages} />
+      </Suspense>
     </div>
   );
 }
